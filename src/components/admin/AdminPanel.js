@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { defaultFeatureItems, defaultProjectItems, defaultSectionContent, defaultSiteContent } from "../../constants";
-import { readFileAsDataUrl, isCustomImageUrl } from "../../utils/imageUtils";
+import { isCustomImageUrl } from "../../utils/imageUtils";
 
 const imageOptions = [
   { value: "projectOne", label: "Project One" },
@@ -35,22 +35,46 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
     }));
   };
 
+  const uploadImageToBackend = async (file) => {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ file: base64 }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Upload failed");
+    }
+
+    const data = await response.json();
+    return data.url;
+  };
+
   const handleBannerImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     try {
-      const dataUrl = await readFileAsDataUrl(file);
+      const imageUrl = await uploadImageToBackend(file);
       setFormData((prev) => ({
         ...prev,
         banner: {
           ...prev.banner,
-          bannerImage: dataUrl,
+          bannerImage: imageUrl,
           bannerImageName: file.name,
         },
       }));
+      setMessage("Banner image uploaded successfully.");
     } catch (error) {
-      console.error("Failed to read banner image", error);
+      console.error("Failed to upload banner image", error);
+      setMessage("Banner image upload failed. Please try again.");
     }
   };
 
@@ -59,15 +83,17 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
     if (!file) return;
 
     try {
-      const dataUrl = await readFileAsDataUrl(file);
+      const imageUrl = await uploadImageToBackend(file);
       setFormData((prev) => ({
         ...prev,
         projects: prev.projects.map((item) =>
-          item.id === id ? { ...item, image: dataUrl, imageName: file.name } : item
+          item.id === id ? { ...item, image: imageUrl, imageName: file.name } : item
         ),
       }));
+      setMessage("Project image uploaded successfully.");
     } catch (error) {
-      console.error("Failed to read project image", error);
+      console.error("Failed to upload project image", error);
+      setMessage("Project image upload failed. Please try again.");
     }
   };
 
