@@ -49,14 +49,15 @@ const loadAuthState = () => {
   }
 };
 
-const AdminRoute = ({ onExit }) => {
+const AdminRoute = ({ onExit, onContentChange }) => {
   const [content, setContent] = useState(loadInitialData);
   const [authenticated, setAuthenticated] = useState(loadAuthState);
   const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(content));
-  }, [content]);
+    onContentChange?.(content);
+  }, [content, onContentChange]);
 
   const handleLogin = ({ email, password }) => {
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {

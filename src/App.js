@@ -33,6 +33,15 @@ function App() {
     setRoute(path === "/admin" ? "admin" : "home");
   };
 
+  const handleContentChange = (nextContent) => {
+    setContent(nextContent);
+    try {
+      localStorage.setItem("portfolio-admin-content", JSON.stringify(nextContent));
+    } catch (error) {
+      console.error("Failed to persist admin content", error);
+    }
+  };
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("portfolio-admin-content");
@@ -63,7 +72,7 @@ function App() {
   return (
     <div className="w-full min-h-screen bg-bodyColor text-lightText px-3 sm:px-4 lg:px-6">
       {route === "admin" ? (
-        <AdminRoute onExit={() => navigateTo("/")} />
+        <AdminRoute onExit={() => navigateTo("/")} onContentChange={handleContentChange} />
       ) : (
         <>
           <Navbar hireMeLink={content.site?.hireMeLink} />
