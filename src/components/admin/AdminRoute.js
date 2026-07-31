@@ -3,17 +3,29 @@ import AdminPanel from "./AdminPanel";
 import LoginForm from "./LoginForm";
 import { defaultBannerContent, defaultFeatureItems, defaultProjectItems, defaultSectionContent, defaultSiteContent } from "../../constants";
 
+const STORAGE_KEY = "portfolio-admin-content";
 const AUTH_KEY = "portfolio-admin-auth";
 const ADMIN_EMAIL = "admin@rakhalchandra.online";
 const ADMIN_PASSWORD = "166595";
 
-const loadInitialData = () => ({
-  banner: defaultBannerContent,
-  section: defaultSectionContent,
-  site: defaultSiteContent,
-  features: defaultFeatureItems,
-  projects: defaultProjectItems,
-});
+const loadInitialData = () => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      return JSON.parse(saved);
+    }
+  } catch {
+    // ignore invalid storage
+  }
+
+  return {
+    banner: defaultBannerContent,
+    section: defaultSectionContent,
+    site: defaultSiteContent,
+    features: defaultFeatureItems,
+    projects: defaultProjectItems,
+  };
+};
 
 const loadAuthState = () => {
   try {
@@ -53,6 +65,12 @@ const AdminRoute = ({ onExit, onContentChange }) => {
   }, []);
 
   const saveSharedContent = async (nextContent) => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextContent));
+    } catch (error) {
+      console.error("Failed to save localStorage backup", error);
+    }
+
     try {
       await fetch("/api/save-content", {
         method: "POST",

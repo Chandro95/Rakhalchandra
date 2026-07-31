@@ -52,8 +52,25 @@ function App() {
           features: content.features || defaultFeatureItems,
           projects: content.projects || defaultProjectItems,
         });
+        return;
       } catch (error) {
         console.error("Failed to load shared content", error);
+      }
+
+      try {
+        const saved = localStorage.getItem("portfolio-admin-content");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setContent({
+            banner: parsed.banner || defaultBannerContent,
+            section: parsed.section || defaultSectionContent,
+            site: parsed.site || defaultSiteContent,
+            features: parsed.features || defaultFeatureItems,
+            projects: parsed.projects || defaultProjectItems,
+          });
+        }
+      } catch (storageError) {
+        console.error("Failed to load fallback localStorage content", storageError);
       }
     };
 

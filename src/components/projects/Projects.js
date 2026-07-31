@@ -2,7 +2,6 @@ import React from 'react'
 import Title from '../layouts/Title'
 import { projectOne, projectTwo, projectThree } from "../../assets/index";
 import ProjectsCard from './ProjectsCard';
-import { isCustomImageUrl } from "../../utils/imageUtils";
 
 const imageMap = {
   projectOne,
