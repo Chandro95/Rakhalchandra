@@ -30,7 +30,7 @@ const Projects = ({ items = [] }) => {
             key={item.id}
             title={item.title}
             des={item.description}
-            src={isCustomImageUrl(item.image) ? item.image : imageMap[item.image] || projectOne}
+            src={imageMap[item.image] ? imageMap[item.image] : item.image || projectOne}
             websiteLink={item.websiteLink}
           />
         ))}

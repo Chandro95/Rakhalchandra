@@ -63,15 +63,17 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
 
     try {
       const imageUrl = await uploadImageToBackend(file);
-      setFormData((prev) => ({
-        ...prev,
+      const nextFormData = {
+        ...formData,
         banner: {
-          ...prev.banner,
+          ...formData.banner,
           bannerImage: imageUrl,
           bannerImageName: file.name,
         },
-      }));
-      setMessage("Banner image uploaded successfully.");
+      };
+      setFormData(nextFormData);
+      onSave(nextFormData);
+      setMessage("Banner image uploaded and saved successfully.");
     } catch (error) {
       console.error("Failed to upload banner image", error);
       setMessage("Banner image upload failed. Please try again.");
@@ -84,13 +86,15 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
 
     try {
       const imageUrl = await uploadImageToBackend(file);
-      setFormData((prev) => ({
-        ...prev,
-        projects: prev.projects.map((item) =>
+      const nextFormData = {
+        ...formData,
+        projects: formData.projects.map((item) =>
           item.id === id ? { ...item, image: imageUrl, imageName: file.name } : item
         ),
-      }));
-      setMessage("Project image uploaded successfully.");
+      };
+      setFormData(nextFormData);
+      onSave(nextFormData);
+      setMessage("Project image uploaded and saved successfully.");
     } catch (error) {
       console.error("Failed to upload project image", error);
       setMessage("Project image upload failed. Please try again.");
