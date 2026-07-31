@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { defaultFeatureItems, defaultProjectItems, defaultSectionContent, defaultSiteContent } from "../../constants";
+import { readFileAsDataUrl, isCustomImageUrl } from "../../utils/imageUtils";
 
 const imageOptions = [
   { value: "projectOne", label: "Project One" },
@@ -34,32 +35,40 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
     }));
   };
 
-  const handleBannerImageUpload = (event) => {
+  const handleBannerImageUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const objectUrl = URL.createObjectURL(file);
-    setFormData((prev) => ({
-      ...prev,
-      banner: {
-        ...prev.banner,
-        bannerImage: objectUrl,
-        bannerImageName: file.name,
-      },
-    }));
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setFormData((prev) => ({
+        ...prev,
+        banner: {
+          ...prev.banner,
+          bannerImage: dataUrl,
+          bannerImageName: file.name,
+        },
+      }));
+    } catch (error) {
+      console.error("Failed to read banner image", error);
+    }
   };
 
-  const handleProjectImageUpload = (id, event) => {
+  const handleProjectImageUpload = async (id, event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const objectUrl = URL.createObjectURL(file);
-    setFormData((prev) => ({
-      ...prev,
-      projects: prev.projects.map((item) =>
-        item.id === id ? { ...item, image: objectUrl, imageName: file.name } : item
-      ),
-    }));
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setFormData((prev) => ({
+        ...prev,
+        projects: prev.projects.map((item) =>
+          item.id === id ? { ...item, image: dataUrl, imageName: file.name } : item
+        ),
+      }));
+    } catch (error) {
+      console.error("Failed to read project image", error);
+    }
   };
 
   const handleSave = () => {
@@ -266,7 +275,7 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
 
                 <label className="mb-2 mt-3 block text-sm text-gray-400">Image</label>
                 <select
-                  value={project.image?.startsWith("blob:") ? "custom" : project.image}
+                  value={isCustomImageUrl(project.image) ? "custom" : project.image}
                   onChange={(e) => {
                     if (e.target.value === "custom") {
                       handleProjectChange(project.id, "image", "custom");
@@ -284,7 +293,7 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
                   ))}
                 </select>
 
-                {project.image === "custom" || project.image?.startsWith("blob:") ? (
+                {project.image === "custom" || isCustomImageUrl(project.image) ? (
                   <div className="mt-3">
                     <input
                       type="file"

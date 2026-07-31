@@ -2,6 +2,7 @@ import React from 'react'
 import Title from '../layouts/Title'
 import { projectOne, projectTwo, projectThree } from "../../assets/index";
 import ProjectsCard from './ProjectsCard';
+import { isCustomImageUrl } from "../../utils/imageUtils";
 
 const imageMap = {
   projectOne,
@@ -29,7 +30,7 @@ const Projects = ({ items = [] }) => {
             key={item.id}
             title={item.title}
             des={item.description}
-            src={item.image?.startsWith("blob:") ? item.image : imageMap[item.image] || projectOne}
+            src={isCustomImageUrl(item.image) ? item.image : imageMap[item.image] || projectOne}
             websiteLink={item.websiteLink}
           />
         ))}
