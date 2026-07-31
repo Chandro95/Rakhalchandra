@@ -35,29 +35,29 @@ function App() {
 
   const handleContentChange = (nextContent) => {
     setContent(nextContent);
-    try {
-      localStorage.setItem("portfolio-admin-content", JSON.stringify(nextContent));
-    } catch (error) {
-      console.error("Failed to persist admin content", error);
-    }
   };
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem("portfolio-admin-content");
-      if (saved) {
-        const parsed = JSON.parse(saved);
+    const loadSharedContent = async () => {
+      try {
+        const response = await fetch("/api/content");
+        if (!response.ok) {
+          throw new Error("No shared content available");
+        }
+        const content = await response.json();
         setContent({
-          banner: parsed.banner || defaultBannerContent,
-          section: parsed.section || defaultSectionContent,
-          site: parsed.site || defaultSiteContent,
-          features: parsed.features || defaultFeatureItems,
-          projects: parsed.projects || defaultProjectItems,
+          banner: content.banner || defaultBannerContent,
+          section: content.section || defaultSectionContent,
+          site: content.site || defaultSiteContent,
+          features: content.features || defaultFeatureItems,
+          projects: content.projects || defaultProjectItems,
         });
+      } catch (error) {
+        console.error("Failed to load shared content", error);
       }
-    } catch (error) {
-      console.error("Failed to load saved admin content", error);
-    }
+    };
+
+    loadSharedContent();
   }, []);
 
   useEffect(() => {

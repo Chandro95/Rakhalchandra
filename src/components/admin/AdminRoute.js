@@ -3,42 +3,17 @@ import AdminPanel from "./AdminPanel";
 import LoginForm from "./LoginForm";
 import { defaultBannerContent, defaultFeatureItems, defaultProjectItems, defaultSectionContent, defaultSiteContent } from "../../constants";
 
-const STORAGE_KEY = "portfolio-admin-content";
 const AUTH_KEY = "portfolio-admin-auth";
 const ADMIN_EMAIL = "admin@rakhalchandra.online";
 const ADMIN_PASSWORD = "166595";
 
-const loadInitialData = () => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
-      return {
-        banner: defaultBannerContent,
-        section: defaultSectionContent,
-        site: defaultSiteContent,
-        features: defaultFeatureItems,
-        projects: defaultProjectItems,
-      };
-    }
-
-    const parsed = JSON.parse(saved);
-    return {
-      banner: parsed.banner || defaultBannerContent,
-      section: parsed.section || defaultSectionContent,
-      site: parsed.site || defaultSiteContent,
-      features: parsed.features || defaultFeatureItems,
-      projects: parsed.projects || defaultProjectItems,
-    };
-  } catch (error) {
-    return {
-      banner: defaultBannerContent,
-      section: defaultSectionContent,
-      site: defaultSiteContent,
-      features: defaultFeatureItems,
-      projects: defaultProjectItems,
-    };
-  }
-};
+const loadInitialData = () => ({
+  banner: defaultBannerContent,
+  section: defaultSectionContent,
+  site: defaultSiteContent,
+  features: defaultFeatureItems,
+  projects: defaultProjectItems,
+});
 
 const loadAuthState = () => {
   try {
@@ -55,9 +30,45 @@ const AdminRoute = ({ onExit, onContentChange }) => {
   const [loginError, setLoginError] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(content));
-    onContentChange?.(content);
-  }, [content, onContentChange]);
+    const loadSharedContent = async () => {
+      try {
+        const response = await fetch("/api/content");
+        if (!response.ok) {
+          return;
+        }
+        const sharedContent = await response.json();
+        setContent({
+          banner: sharedContent.banner || defaultBannerContent,
+          section: sharedContent.section || defaultSectionContent,
+          site: sharedContent.site || defaultSiteContent,
+          features: sharedContent.features || defaultFeatureItems,
+          projects: sharedContent.projects || defaultProjectItems,
+        });
+      } catch (error) {
+        console.error("Failed to load shared admin content", error);
+      }
+    };
+
+    loadSharedContent();
+  }, []);
+
+  const saveSharedContent = async (nextContent) => {
+    try {
+      await fetch("/api/save-content", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: nextContent }),
+      });
+    } catch (error) {
+      console.error("Failed to save shared content", error);
+    }
+  };
+
+  const handleSaveContent = async (nextContent) => {
+    setContent(nextContent);
+    onContentChange?.(nextContent);
+    await saveSharedContent(nextContent);
+  };
 
   const handleLogin = ({ email, password }) => {
     if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
@@ -95,7 +106,7 @@ const AdminRoute = ({ onExit, onContentChange }) => {
           </div>
           <AdminPanel
             initialData={content}
-            onSave={setContent}
+            onSave={handleSaveContent}
             onCancel={onExit}
           />
         </>
