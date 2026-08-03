@@ -7,6 +7,24 @@ const AUTH_KEY = "portfolio-admin-auth";
 const ADMIN_EMAIL = "admin@rakhalchandra.online";
 const ADMIN_PASSWORD = "166595";
 
+const getCloudinaryCloudName = () => {
+  if (process.env.REACT_APP_CLOUDINARY_CLOUD_NAME) {
+    return process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+  }
+  const url = process.env.REACT_APP_CLOUDINARY_URL;
+  if (!url) {
+    return "";
+  }
+  const match = url.match(/cloudinary:\/\/[^^:]+:[^@]+@([^/\s]+)/);
+  if (match && match[1]) {
+    return match[1];
+  }
+  const webMatch = url.match(/https?:\/\/api\.cloudinary\.com\/v1_1\/([^/\s]+)/);
+  return webMatch ? webMatch[1] : "";
+};
+
+const getCloudinaryUploadPreset = () => process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET || "";
+
 const loadInitialData = () => ({
   banner: defaultBannerContent,
   section: defaultSectionContent,
@@ -69,13 +87,16 @@ const AdminRoute = ({ onExit, onContentChange }) => {
     }
 
     try {
-      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
-      const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+      const cloudName = getCloudinaryCloudName();
+      const uploadPreset = getCloudinaryUploadPreset();
       if (cloudName && uploadPreset) {
         const jsonString = JSON.stringify(nextContent);
-        const base64 = typeof window !== "undefined" && window.btoa
+        const base64 = window && window.btoa
           ? window.btoa(unescape(encodeURIComponent(jsonString)))
-          : Buffer.from(jsonString).toString("base64");
+          : "";
+        if (!base64) {
+          throw new Error("Unable to encode content for Cloudinary upload");
+        }
         const dataUri = `data:application/json;base64,${base64}`;
 
         const formData = new FormData();

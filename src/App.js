@@ -17,6 +17,22 @@ import {
   defaultSiteContent,
 } from "./constants";
 
+const getCloudinaryCloudName = () => {
+  if (process.env.REACT_APP_CLOUDINARY_CLOUD_NAME) {
+    return process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+  }
+  const url = process.env.REACT_APP_CLOUDINARY_URL;
+  if (!url) {
+    return "";
+  }
+  const match = url.match(/cloudinary:\/\/[^^:]+:[^@]+@([^/\s]+)/);
+  if (match && match[1]) {
+    return match[1];
+  }
+  const webMatch = url.match(/https?:\/\/api\.cloudinary\.com\/v1_1\/([^/\s]+)/);
+  return webMatch ? webMatch[1] : "";
+};
+
 function App() {
   const getCurrentRoute = () => (window.location.pathname === "/admin" ? "admin" : "home");
   const [route, setRoute] = useState(getCurrentRoute);
@@ -58,7 +74,7 @@ function App() {
       }
       // Try to fetch directly from Cloudinary public raw URL if env vars present
       try {
-        const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+        const cloudName = getCloudinaryCloudName();
         if (cloudName) {
           const cloudUrls = [
             `https://res.cloudinary.com/${cloudName}/raw/upload/portfolio-data/portfolio-content.json`,
