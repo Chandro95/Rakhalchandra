@@ -3,29 +3,17 @@ import AdminPanel from "./AdminPanel";
 import LoginForm from "./LoginForm";
 import { defaultBannerContent, defaultFeatureItems, defaultProjectItems, defaultSectionContent, defaultSiteContent } from "../../constants";
 
-const STORAGE_KEY = "portfolio-admin-content";
 const AUTH_KEY = "portfolio-admin-auth";
 const ADMIN_EMAIL = "admin@rakhalchandra.online";
 const ADMIN_PASSWORD = "166595";
 
-const loadInitialData = () => {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      return JSON.parse(saved);
-    }
-  } catch {
-    // ignore invalid storage
-  }
-
-  return {
-    banner: defaultBannerContent,
-    section: defaultSectionContent,
-    site: defaultSiteContent,
-    features: defaultFeatureItems,
-    projects: defaultProjectItems,
-  };
-};
+const loadInitialData = () => ({
+  banner: defaultBannerContent,
+  section: defaultSectionContent,
+  site: defaultSiteContent,
+  features: defaultFeatureItems,
+  projects: defaultProjectItems,
+});
 
 const loadAuthState = () => {
   try {
@@ -66,13 +54,6 @@ const AdminRoute = ({ onExit, onContentChange }) => {
 
   const saveSharedContent = async (nextContent) => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextContent));
-    } catch (error) {
-      console.error("Failed to save localStorage backup", error);
-    }
-
-    // Try server-side save first, then fallback to client-side Cloudinary unsigned upload
-    try {
       const resp = await fetch("/api/save-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -80,12 +61,6 @@ const AdminRoute = ({ onExit, onContentChange }) => {
       });
 
       if (resp.ok) {
-        const json = await resp.json().catch(() => null);
-        if (json && json.url) {
-          try {
-            localStorage.setItem(`${STORAGE_KEY}-url`, json.url);
-          } catch {}
-        }
         return;
       }
       console.error("/api/save-content failed with status", resp.status);
@@ -93,7 +68,6 @@ const AdminRoute = ({ onExit, onContentChange }) => {
       console.error("Failed to save shared content via /api/save-content", error);
     }
 
-    // Fallback: try unsigned client-side upload to Cloudinary (raw resource)
     try {
       const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
       const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
@@ -110,16 +84,13 @@ const AdminRoute = ({ onExit, onContentChange }) => {
         formData.append("folder", "portfolio-data");
         formData.append("public_id", "portfolio-content");
         formData.append("resource_type", "raw");
+        formData.append("format", "json");
+        formData.append("overwrite", "true");
+        formData.append("unique_filename", "false");
 
         const url = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
         const r = await fetch(url, { method: "POST", body: formData });
         if (r.ok) {
-          const j = await r.json();
-          if (j && j.secure_url) {
-            try {
-              localStorage.setItem(`${STORAGE_KEY}-url`, j.secure_url);
-            } catch {}
-          }
           return;
         }
         const txt = await r.text().catch(() => "");

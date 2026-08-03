@@ -56,32 +56,19 @@ function App() {
       } catch (error) {
         console.error("Failed to load shared content", error);
       }
-      // Try to load saved content from localStorage
-      try {
-        const saved = localStorage.getItem("portfolio-admin-content");
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setContent({
-            banner: parsed.banner || defaultBannerContent,
-            section: parsed.section || defaultSectionContent,
-            site: parsed.site || defaultSiteContent,
-            features: parsed.features || defaultFeatureItems,
-            projects: parsed.projects || defaultProjectItems,
-          });
-          return;
-        }
-      } catch (storageError) {
-        console.error("Failed to load fallback localStorage content", storageError);
-      }
-
       // Try to fetch directly from Cloudinary public raw URL if env vars present
       try {
         const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
         if (cloudName) {
-          // Attempt known public path for raw upload
-          const cloudUrl = `https://res.cloudinary.com/${cloudName}/raw/upload/portfolio-data/portfolio-content.json`;
-          const res = await fetch(cloudUrl);
-          if (res.ok) {
+          const cloudUrls = [
+            `https://res.cloudinary.com/${cloudName}/raw/upload/portfolio-data/portfolio-content.json`,
+            `https://res.cloudinary.com/${cloudName}/raw/upload/portfolio-data/portfolio-content`,
+          ];
+          for (const cloudUrl of cloudUrls) {
+            const res = await fetch(cloudUrl);
+            if (!res.ok) {
+              continue;
+            }
             const data = await res.json();
             setContent({
               banner: data.banner || defaultBannerContent,
