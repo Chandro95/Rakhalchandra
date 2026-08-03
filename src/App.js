@@ -56,7 +56,7 @@ function App() {
       } catch (error) {
         console.error("Failed to load shared content", error);
       }
-
+      // Try to load saved content from localStorage
       try {
         const saved = localStorage.getItem("portfolio-admin-content");
         if (saved) {
@@ -68,9 +68,33 @@ function App() {
             features: parsed.features || defaultFeatureItems,
             projects: parsed.projects || defaultProjectItems,
           });
+          return;
         }
       } catch (storageError) {
         console.error("Failed to load fallback localStorage content", storageError);
+      }
+
+      // Try to fetch directly from Cloudinary public raw URL if env vars present
+      try {
+        const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+        if (cloudName) {
+          // Attempt known public path for raw upload
+          const cloudUrl = `https://res.cloudinary.com/${cloudName}/raw/upload/portfolio-data/portfolio-content.json`;
+          const res = await fetch(cloudUrl);
+          if (res.ok) {
+            const data = await res.json();
+            setContent({
+              banner: data.banner || defaultBannerContent,
+              section: data.section || defaultSectionContent,
+              site: data.site || defaultSiteContent,
+              features: data.features || defaultFeatureItems,
+              projects: data.projects || defaultProjectItems,
+            });
+            return;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch content directly from Cloudinary", e);
       }
     };
 

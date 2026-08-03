@@ -71,14 +71,62 @@ const AdminRoute = ({ onExit, onContentChange }) => {
       console.error("Failed to save localStorage backup", error);
     }
 
+    // Try server-side save first, then fallback to client-side Cloudinary unsigned upload
     try {
-      await fetch("/api/save-content", {
+      const resp = await fetch("/api/save-content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: nextContent }),
       });
+
+      if (resp.ok) {
+        const json = await resp.json().catch(() => null);
+        if (json && json.url) {
+          try {
+            localStorage.setItem(`${STORAGE_KEY}-url`, json.url);
+          } catch {}
+        }
+        return;
+      }
+      console.error("/api/save-content failed with status", resp.status);
     } catch (error) {
-      console.error("Failed to save shared content", error);
+      console.error("Failed to save shared content via /api/save-content", error);
+    }
+
+    // Fallback: try unsigned client-side upload to Cloudinary (raw resource)
+    try {
+      const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+      const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+      if (cloudName && uploadPreset) {
+        const jsonString = JSON.stringify(nextContent);
+        const base64 = typeof window !== "undefined" && window.btoa
+          ? window.btoa(unescape(encodeURIComponent(jsonString)))
+          : Buffer.from(jsonString).toString("base64");
+        const dataUri = `data:application/json;base64,${base64}`;
+
+        const formData = new FormData();
+        formData.append("file", dataUri);
+        formData.append("upload_preset", uploadPreset);
+        formData.append("folder", "portfolio-data");
+        formData.append("public_id", "portfolio-content");
+        formData.append("resource_type", "raw");
+
+        const url = `https://api.cloudinary.com/v1_1/${cloudName}/raw/upload`;
+        const r = await fetch(url, { method: "POST", body: formData });
+        if (r.ok) {
+          const j = await r.json();
+          if (j && j.secure_url) {
+            try {
+              localStorage.setItem(`${STORAGE_KEY}-url`, j.secure_url);
+            } catch {}
+          }
+          return;
+        }
+        const txt = await r.text().catch(() => "");
+        console.error("Cloudinary client save failed", r.status, txt);
+      }
+    } catch (err) {
+      console.error("Client-side Cloudinary save failed", err);
     }
   };
 
