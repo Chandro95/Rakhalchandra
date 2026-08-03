@@ -36,6 +36,28 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
   };
 
   const uploadImageToBackend = async (file) => {
+    // Try direct client-side unsigned upload to Cloudinary if env vars are provided
+    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+
+    // read file as blob (keep original blob for form upload)
+    if (cloudName && uploadPreset) {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", uploadPreset);
+
+      const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+      const resp = await fetch(url, { method: "POST", body: formData });
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => "");
+        console.error("Cloudinary direct upload failed:", resp.status, text);
+        throw new Error("Upload failed");
+      }
+      const json = await resp.json();
+      return json.secure_url || json.url;
+    }
+
+    // Fallback to backend API upload
     const base64 = await new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => resolve(reader.result);
@@ -50,6 +72,8 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
     });
 
     if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      console.error("/api/upload failed:", response.status, text);
       throw new Error("Upload failed");
     }
 
