@@ -1,5 +1,10 @@
 export const isCustomImageUrl = (value) => {
-  return typeof value === "string" && (value.startsWith("blob:") || value.startsWith("data:"));
+  return typeof value === "string" && (
+    value.startsWith("blob:") ||
+    value.startsWith("data:") ||
+    value.startsWith("http://") ||
+    value.startsWith("https://")
+  );
 };
 
 export const readFileAsDataUrl = (file) => {

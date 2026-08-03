@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { defaultFeatureItems, defaultProjectItems, defaultSectionContent, defaultSiteContent } from "../../constants";
-import { isCustomImageUrl } from "../../utils/imageUtils";
+import { isCustomImageUrl, readFileAsDataUrl } from "../../utils/imageUtils";
 
 const imageOptions = [
   { value: "projectOne", label: "Project One" },
@@ -12,9 +12,19 @@ const imageOptions = [
 const AdminPanel = ({ initialData, onSave, onCancel }) => {
   const [formData, setFormData] = useState(initialData);
   const [message, setMessage] = useState("");
+  const [previewUrls, setPreviewUrls] = useState({ banner: "", projects: {} });
 
   useEffect(() => {
     setFormData(initialData);
+    setPreviewUrls({
+      banner: isCustomImageUrl(initialData.banner?.bannerImage) ? initialData.banner.bannerImage : "",
+      projects: Object.fromEntries(
+        initialData.projects.map((item) => [
+          item.id,
+          isCustomImageUrl(item.image) ? item.image : "",
+        ])
+      ),
+    });
   }, [initialData]);
 
   const handleFeatureChange = (id, field, value) => {
@@ -86,6 +96,9 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
     if (!file) return;
 
     try {
+      const previewUrl = await readFileAsDataUrl(file);
+      setPreviewUrls((prev) => ({ ...prev, banner: previewUrl }));
+
       const imageUrl = await uploadImageToBackend(file);
       const nextFormData = {
         ...formData,
@@ -96,6 +109,7 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
         },
       };
       setFormData(nextFormData);
+      setPreviewUrls((prev) => ({ ...prev, banner: imageUrl }));
       onSave(nextFormData);
       setMessage("Banner image uploaded and saved successfully.");
     } catch (error) {
@@ -109,6 +123,12 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
     if (!file) return;
 
     try {
+      const previewUrl = await readFileAsDataUrl(file);
+      setPreviewUrls((prev) => ({
+        ...prev,
+        projects: { ...prev.projects, [id]: previewUrl },
+      }));
+
       const imageUrl = await uploadImageToBackend(file);
       const nextFormData = {
         ...formData,
@@ -117,6 +137,10 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
         ),
       };
       setFormData(nextFormData);
+      setPreviewUrls((prev) => ({
+        ...prev,
+        projects: { ...prev.projects, [id]: imageUrl },
+      }));
       onSave(nextFormData);
       setMessage("Project image uploaded and saved successfully.");
     } catch (error) {
@@ -249,6 +273,16 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
               {formData.banner?.bannerImageName ? (
                 <p className="mt-2 text-sm text-gray-400">Selected file: {formData.banner.bannerImageName}</p>
               ) : null}
+              {previewUrls.banner ? (
+                <div className="mt-4">
+                  <p className="text-sm text-gray-300 mb-2">Banner preview</p>
+                  <img
+                    src={previewUrls.banner}
+                    alt="Banner preview"
+                    className="h-40 w-full rounded-lg object-cover border border-gray-700"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
 
@@ -357,6 +391,16 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
                     />
                     {project.imageName ? (
                       <p className="mt-2 text-sm text-gray-400">Selected file: {project.imageName}</p>
+                    ) : null}
+                    {(previewUrls.projects[project.id] || (isCustomImageUrl(project.image) ? project.image : "")) ? (
+                      <div className="mt-4">
+                        <p className="text-sm text-gray-300 mb-2">Project image preview</p>
+                        <img
+                          src={previewUrls.projects[project.id] || project.image}
+                          alt="Project preview"
+                          className="h-40 w-full rounded-lg object-cover border border-gray-700"
+                        />
+                      </div>
                     ) : null}
                   </div>
                 ) : null}
