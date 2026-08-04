@@ -55,27 +55,9 @@ function App() {
 
   useEffect(() => {
     const loadSharedContent = async () => {
-      try {
-        const response = await fetch("/api/content");
-        if (!response.ok) {
-          throw new Error("No shared content available");
-        }
-        const content = await response.json();
-        setContent({
-          banner: content.banner || defaultBannerContent,
-          section: content.section || defaultSectionContent,
-          site: content.site || defaultSiteContent,
-          features: content.features || defaultFeatureItems,
-          projects: content.projects || defaultProjectItems,
-        });
-        return;
-      } catch (error) {
-        console.error("Failed to load shared content", error);
-      }
-      // Try to fetch directly from Cloudinary public raw URL if env vars present
-      try {
-        const cloudName = getCloudinaryCloudName();
-        if (cloudName) {
+      const cloudName = getCloudinaryCloudName();
+      if (cloudName) {
+        try {
           const cloudUrls = [
             `https://res.cloudinary.com/${cloudName}/raw/upload/portfolio-data/portfolio-content.json`,
             `https://res.cloudinary.com/${cloudName}/raw/upload/portfolio-data/portfolio-content`,
@@ -95,9 +77,42 @@ function App() {
             });
             return;
           }
+        } catch (e) {
+          console.error("Failed to fetch content directly from Cloudinary", e);
         }
-      } catch (e) {
-        console.error("Failed to fetch content directly from Cloudinary", e);
+      }
+
+      try {
+        const response = await fetch("/api/content");
+        if (response.ok) {
+          const content = await response.json();
+          setContent({
+            banner: content.banner || defaultBannerContent,
+            section: content.section || defaultSectionContent,
+            site: content.site || defaultSiteContent,
+            features: content.features || defaultFeatureItems,
+            projects: content.projects || defaultProjectItems,
+          });
+          return;
+        }
+      } catch (error) {
+        console.error("Failed to load shared content from /api/content", error);
+      }
+
+      try {
+        const saved = localStorage.getItem("portfolio-admin-content");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setContent({
+            banner: parsed.banner || defaultBannerContent,
+            section: parsed.section || defaultSectionContent,
+            site: parsed.site || defaultSiteContent,
+            features: parsed.features || defaultFeatureItems,
+            projects: parsed.projects || defaultProjectItems,
+          });
+        }
+      } catch (storageError) {
+        console.error("Failed to load fallback localStorage content", storageError);
       }
     };
 
