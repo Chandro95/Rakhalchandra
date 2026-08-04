@@ -45,9 +45,29 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
     }));
   };
 
+  const getCloudinaryCloudName = () => {
+    const envName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+    if (envName) {
+      return envName;
+    }
+
+    const url = process.env.REACT_APP_CLOUDINARY_URL;
+    if (!url) {
+      return "";
+    }
+
+    const match = url.match(/cloudinary:\/\/[^:]+:[^@]+@([^/\s]+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+
+    const webMatch = url.match(/https?:\/\/api\.cloudinary\.com\/v1_1\/([^/\s]+)/);
+    return webMatch ? webMatch[1] : "";
+  };
+
   const uploadImageToBackend = async (file) => {
     // Try direct client-side unsigned upload to Cloudinary if env vars are provided
-    const cloudName = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
+    const cloudName = getCloudinaryCloudName();
     const uploadPreset = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
 
     // read file as blob (keep original blob for form upload)
@@ -110,7 +130,9 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
       };
       setFormData(nextFormData);
       setPreviewUrls((prev) => ({ ...prev, banner: imageUrl }));
-      onSave(nextFormData);
+      if (typeof onSave === "function") {
+        await onSave(nextFormData);
+      }
       setMessage("Banner image uploaded and saved successfully.");
     } catch (error) {
       console.error("Failed to upload banner image", error);
@@ -141,7 +163,9 @@ const AdminPanel = ({ initialData, onSave, onCancel }) => {
         ...prev,
         projects: { ...prev.projects, [id]: imageUrl },
       }));
-      onSave(nextFormData);
+      if (typeof onSave === "function") {
+        await onSave(nextFormData);
+      }
       setMessage("Project image uploaded and saved successfully.");
     } catch (error) {
       console.error("Failed to upload project image", error);
